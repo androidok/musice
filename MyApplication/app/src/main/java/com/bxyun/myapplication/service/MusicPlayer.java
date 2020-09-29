@@ -505,7 +505,15 @@ public class MusicPlayer {
         } catch (final RemoteException ignored) {
         }
     }
-    //
+    //  播放所有的列表
+
+    /**
+     *
+     * @param infos  通过song_id，存放的 音乐信息，比如歌词等
+     * @param list  存放的是 song_id，用来获取歌词和歌曲信息的
+     * @param position   需要播放的位置
+     * @param forceShuffle   是否是随机模式，true 表示的是随机播放
+     */
     public static synchronized void playAll(final HashMap<Long, MusicInfo> infos, final long[] list, int position, final boolean forceShuffle) {
         if (list == null || list.length == 0 || mService == null) {
             return;
@@ -518,9 +526,11 @@ public class MusicPlayer {
             long playId = list[position];
             Log.e("currentId", currentId + "");
             final int currentQueuePosition = getQueuePosition();
+            // 这个时候指定播放某个位置的歌曲
             if (position != -1) {
                 final long[] playlist = getQueue();
                 if (Arrays.equals(list, playlist)) {
+                    //  这个要求是同一个位置并且要求 相同Id的歌曲
                     if (currentQueuePosition == position && currentId == list[position]) {
                         mService.play();
                         return;
@@ -531,6 +541,7 @@ public class MusicPlayer {
 
                 }
             }
+            // 没有指定播放指定位置的歌曲需要的操作
             if (position < 0) {
                 position = 0;
             }

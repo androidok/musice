@@ -267,7 +267,7 @@ public class MediaService extends Service {
     private int mPlayPos = -1;
 
     private int mNextPlayPos = -1;
-
+    // 打开失败的计数器
     private int mOpenFailedCounter = 0;
 
     private int mMediaMountedCount = 0;
@@ -373,13 +373,15 @@ public class MediaService extends Service {
         if (D) Log.d(TAG, "Creating service");
         super.onCreate();
         mGetUrlThread.start();
-        // 播放器代理
+        // 播放器代理,就是一个网络访问代理
         mProxy = new MediaPlayerProxy(this);
         mProxy.init();
         mProxy.start();
+        //  通知栏管理工具类
         mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         // gets a pointer to the playback state store
+        // 处理保存状态的工具类
         mPlaybackStateStore = MusicPlaybackState.getInstance(this);
         mSongPlayCount = SongPlayCount.getInstance(this);
         mRecentStore = RecentStore.getInstance(this);
@@ -951,7 +953,6 @@ public class MediaService extends Service {
         }
     }
 
-
     private Cursor openCursorAndGoToFirst(Uri uri, String[] projection,
                                           String selection, String[] selectionArgs) {
         Cursor c = getContentResolver().query(uri, projection,
@@ -1133,15 +1134,24 @@ public class MediaService extends Service {
         }
     }
 
+    /**
+     *
+     * @param play  是否播放
+     */
     private void openCurrentAndNextPlay(boolean play) {
         openCurrentAndMaybeNext(play, true);
     }
+
 
     private void openCurrentAndNext() {
         openCurrentAndMaybeNext(false, true);
     }
 
-
+    /**
+     *
+     * @param play
+     * @param openNext
+     */
     private void openCurrentAndMaybeNext(final boolean play, final boolean openNext) {
         synchronized (this) {
             if (D) Log.d(TAG, "open current");
@@ -1214,7 +1224,6 @@ public class MediaService extends Service {
         i.putExtra(TrackErrorExtra.TRACK_NAME, trackName);
         sendBroadcast(i);
     }
-
     /**
      * @param force 是否正常播放完成，执行下一首，true  标识的不是正常播放完成，手动操作进入下一首
      *              <p>
@@ -1322,6 +1331,7 @@ public class MediaService extends Service {
     private void setNextTrack() {
         setNextTrack(getNextPosition(false));
     }
+
 
     private void setNextTrack(int position) {
         mNextPlayPos = position;
@@ -1756,6 +1766,7 @@ public class MediaService extends Service {
                 e.printStackTrace();
             }
         }
+        //  判断 列表和 存储的列表信息要一一对应
         if ((mPlaylist.size() == mPlaylistInfo.size()) && mPlaylist.size() > 0) {
             final int pos = mPreferences.getInt("curpos", 0);
             if (pos < 0 || pos >= mPlaylist.size()) {
@@ -1763,6 +1774,7 @@ public class MediaService extends Service {
                 return;
             }
             mPlayPos = pos;
+            //  获取条目的ID ，模拟出信息的cursor
             updateCursor(mPlaylist.get(mPlayPos).mId);
             if (mCursor == null) {
                 SystemClock.sleep(3000);
@@ -1955,7 +1967,6 @@ public class MediaService extends Service {
             if (mShuffleMode == shufflemode && mPlaylist.size() > 0) {
                 return;
             }
-
             mShuffleMode = shufflemode;
             if (mShuffleMode == SHUFFLE_AUTO) {
                 if (makeAutoShuffleList()) {
@@ -2006,7 +2017,6 @@ public class MediaService extends Service {
             mPlaylistInfo.remove(id);
         }
 
-
         if (numremoved > 0) {
             notifyChange(QUEUE_CHANGED);
         }
@@ -2040,7 +2050,8 @@ public class MediaService extends Service {
             return mPlayPos;
         }
     }
-
+    //
+    //  设置播放的位置，一方面播放位置指定错误的时候设置播放位置
     public void setQueuePosition(final int index) {
         synchronized (this) {
             stop(false);
@@ -2368,19 +2379,19 @@ public class MediaService extends Service {
     //  初始化   流程开始
 
     /**
-     * @param infos    通过ID 保存的音乐信息的键值对
-     * @param list     保存的是ID
-     * @param position 需要播放的位置
+     *
+     * @param infos  存放歌曲信息的集合
+     * @param list   存放歌曲信息的key
+     * @param position  播放的位置，如果小于0 随机播放
      */
-    public void open(final HashMap<Long, MusicInfo> infos, final long[] list, final int position) {
+    public void open( final HashMap<Long, MusicInfo> infos, final long[] list, final int position) {
         synchronized (this) {
-
             mPlaylistInfo = infos;
 //            L.D(D,TAG,mPlaylistInfo.toString());
             if (mShuffleMode == SHUFFLE_AUTO) {
                 mShuffleMode = SHUFFLE_NORMAL;
             }
-            // 获取上次保存的条目
+            // 获取上次保存的条目ID
             final long oldId = getAudioId();
             final int listlength = list.length;
             boolean newlist = true;
@@ -2394,6 +2405,7 @@ public class MediaService extends Service {
                     }
                 }
             }
+            //  如果是新的列表，就把新的列表添加到总的列表中
             if (newlist) {
                 addToPlayList(list, -1);
                 notifyChange(QUEUE_CHANGED);
@@ -2413,7 +2425,7 @@ public class MediaService extends Service {
         }
     }
 
-
+    //  获取存储当前音乐信息的key，也就是歌曲在数据中的key
     public long getAudioId() {
         MusicTrack track = getCurrentTrack();
         if (track != null) {
